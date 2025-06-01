@@ -1,3 +1,10 @@
 /docs/notes.txt
 /test/scrap/
-/data/sensor/
+
+pgdata/
+db/csv/*.csv
+
+.env
+.env*
+
+db/csv/*.csv
