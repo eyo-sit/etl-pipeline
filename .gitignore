@@ -5,6 +5,6 @@ pgdata/
 db/csv/*.csv
 
 .env
-.env*
 
-db/csv/*.csv
+d__pycache__/
+*.pycb/csv/*.csv
