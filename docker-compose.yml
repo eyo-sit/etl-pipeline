@@ -1,7 +1,7 @@
 services:
-  etl-sink:
+  etl-target:
     image: postgres
-    container_name: etl-sink
+    container_name: etl-target
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -9,26 +9,88 @@ services:
     ports:
       - "${DB_PORT}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data 
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./db/load-data.sh:/docker-entrypoint-initdb.d/load-data.sh
-      - ./db/csv:/csv
+      - target_pgdata:/var/lib/postgresql/data 
+      - ./db/etl-target/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/etl-target/load-data.sh:/docker-entrypoint-initdb.d/load-data.sh
+      - ./db/etl-target/csv:/csv
     restart: unless-stopped
 
-  etl-pipeline:
-    build: ./app
-    container_name: etl-pipeline
+  etl-server:
+    build: ./etl-server
+    container_name: etl-server
     depends_on:
-      - etl-sink
+      - etl-target
     volumes:
-      - ./app:/app
-    working_dir: /app
+      - ./etl-server:/etl-server
+    working_dir: /etl-server
     command: ["./wait-for-postgres.sh", "python", "main.py"]
     environment:
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      DB_PORT: 5432
+
+
+  sensor-client-1:
+    build:  ./sensor-client
+    container_name: sensor-client-1
+    working_dir: /app
+    volumes:
+      - ./data:/data:ro
+    environment:
+      SENSOR_ID: "1"
+      SERVER_HOST: etl-server
+      SERVER_PORT: 5555 
+
+  sensor-client-2:
+    build:  ./sensor-client
+    container_name: sensor-client-2
+    working_dir: /app
+    volumes:
+      - ./data:/data:ro
+    environment:
+      SENSOR_ID: "2"
+      DB_PORT: 5432
+      SERVER_HOST: etl-server
+      SERVER_PORT: 5555 
+
+
+  sensor-client-3:
+    build:  ./sensor-client
+    container_name: sensor-client-3
+    working_dir: /app
+    volumes:
+      - ./data:/data:ro
+    environment:
+      SENSOR_ID: "3"
+      DB_PORT: 5432
+      SERVER_HOST: etl-server
+      SERVER_PORT: 5555 
+
+  sensor-client-4:
+    build:  ./sensor-client
+    container_name: sensor-client-4
+    working_dir: /app
+    volumes:
+      - ./data:/data:ro
+    environment:
+      SENSOR_ID: "4"
+      DB_PORT: 5432
+      SERVER_HOST: etl-server
+      SERVER_PORT: 5555 
+
+  sensor-client-5:
+    build:  ./sensor-client
+    container_name: sensor-client-5
+    working_dir: /app
+    volumes:
+      - ./data:/data:ro
+    environment:
+      SENSOR_ID: "5"
+      DB_PORT: 5432
+      SERVER_HOST: etl-server
+      SERVER_PORT: 5555 
 
 volumes:
-  pgdata:
+  target_pgdata:

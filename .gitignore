@@ -2,9 +2,13 @@
 /test/scrap/
 
 pgdata/
-db/csv/*.csv
+db/etl-target/*
 
 .env
 
 d__pycache__/
 *.pycb/csv/*.csv
+
+data/
+etl-server
+__pycache__
