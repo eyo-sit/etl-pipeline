@@ -15,6 +15,20 @@ services:
       - ./db/etl-target/csv:/csv
     restart: unless-stopped
 
+  etl-stage:
+    image: postgres
+    container_name: etl-stage
+    environment:
+      POSTGRES_USER: ${STAGE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${STAGE_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${STAGE_POSTGRES_DB}
+    ports:
+      - "${STAGE_DB_PORT}:5432"
+    volumes:
+      - stage_pgdata:/var/lib/postgresql/data 
+      - ./db/etl-stage/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
   etl-server:
     build: ./etl-server
     container_name: etl-server
@@ -29,6 +43,10 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      STAGE_DB_HOST: ${STAGE_DB_HOST}
+      STAGE_DB_NAME: ${STAGE_DB_NAME}
+      STAGE_DB_USER: ${STAGE_DB_USER}
+      STAGE_DB_PASS: ${STAGE_DB_PASS}
       DB_PORT: 5432
 
 
@@ -94,3 +112,4 @@ services:
 
 volumes:
   target_pgdata:
+  stage_pgdata:

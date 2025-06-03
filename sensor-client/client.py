@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 delay = (current_ts - previous_ts).total_seconds()
                 time.sleep(max(delay, 0))
 
-            socket.send(bytes(','.join(row), "utf-8"))
+            socket.send(bytes(','.join(row), 'UTF-8'))
             previous_ts = current_ts
             if count == 50:
                 break
