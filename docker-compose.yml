@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${DB_PORT}:5432"
+      - "${HOST_DB_PORT}:${DB_PORT}"
     volumes:
       - target_pgdata:/var/lib/postgresql/data 
       - ./db/etl-target/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${STAGE_POSTGRES_PASSWORD}
       POSTGRES_DB: ${STAGE_POSTGRES_DB}
     ports:
-      - "${STAGE_DB_PORT}:5432"
+      - "${HOST_STAGE_DB_PORT}:${STAGE_DB_PORT}"
     volumes:
       - stage_pgdata:/var/lib/postgresql/data 
       - ./db/etl-stage/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -43,12 +43,12 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      DB_PORT: ${DB_PORT}
       STAGE_DB_HOST: ${STAGE_DB_HOST}
       STAGE_DB_NAME: ${STAGE_DB_NAME}
       STAGE_DB_USER: ${STAGE_DB_USER}
       STAGE_DB_PASS: ${STAGE_DB_PASS}
-      DB_PORT: 5432
-
+      STAGE_DB_PORT: ${STAGE_DB_PORT}
 
   sensor-client-1:
     build:  ./sensor-client

@@ -1,9 +1,7 @@
-from connect import connect
 import time
 import zmq
 from _thread import *
 import threading
-from unpackage import unpackage
 from validate import validate
 from store import store
 from clean import clean
@@ -12,7 +10,9 @@ from queue import Queue
 import os
 
 
-
+#Connect to socket and wait for messages from clients
+#Send messages to validate() thread
+#When clients indicate that they are done; Exit
 def ingest(conxext, out_q):
     socket = context.socket(zmq.PULL)
     socket.bind("tcp://*:5555")
@@ -34,24 +34,20 @@ def ingest(conxext, out_q):
                 break
         #  Do some 'work'
         else:
-            out_q.put(unpackage(message))
+            out_q.put(message)
 
 
+##Thread creation
+##Pass interthread communication method: queues
+##Initialize socket to communicate with sensors
+##Wait for threads to close
 if __name__ == '__main__':
     print("working", flush=True);
     #Set up socket
     #connect to target database
-    conn = connect(
-            os.environ["DB_HOST"],
-            os.environ["DB_NAME"],
-            os.environ["DB_USER"],
-            os.environ["DB_PASS"],
-            os.environ.get("DB_PORT", "5432"),
-            )
-    cursor = conn.cursor()
-    exit
     context = zmq.Context()
 
+    #set up interprocess communication
     ingestToValidateQ = Queue()
     validateToCleanQ = Queue()
     cleanToReportQ = Queue()
@@ -60,12 +56,14 @@ if __name__ == '__main__':
 
     t1 = threading.Thread(target=ingest, args=(context, ingestToValidateQ,))
     t2 = threading.Thread(target=validate, args=(ingestToValidateQ,validateToCleanQ,))
-#     t3 = threading.Thread(target=clean, args=(validateToCleanQ, cleanToReportQ,))
+    t3 = threading.Thread(target=clean, args=(validateToCleanQ, cleanToReportQ,))
 #     t4 = threading.Thread(target=report, args=(cleanToReportQ, reportToStoreQ,))
 #     t5 = threading.Thread(target=store, args=(reportToStoreQ,))
 
     t1.start()
     t2.start()
+    t3.start()
     t1.join()
     t2.join()
+    t3.join()
     print("Done!")

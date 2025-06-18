@@ -12,3 +12,6 @@ d__pycache__/
 data/
 /etl_server/__pycache__
 etl-server/__pycache__
+etl-server/stage_database.ini
+etl-server/target_database.ini
+etl-server/logs

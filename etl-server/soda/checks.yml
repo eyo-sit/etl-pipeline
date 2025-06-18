@@ -1,0 +1,12 @@
+for each dataset T:
+  datasets:
+    -  missile_tracks_sensor_%
+  checks:
+    - duplicate_count(sensor_id, track_id, unix_timestamp) = 0
+    - missing_count(unix_timestamp) = 0
+    - missing_count(track_id) = 0
+    - missing_count(sensor_id) = 0
+    - missing_count(latitude) = 0
+    - missing_count(longitude) = 0
+    - missing_count(altitude) = 0
+    - missing_count(radiometric_intensity) = 0

@@ -1,0 +1,15 @@
+data_source etl_stage:
+  type: postgres
+  host: ${STAGE_DB_HOST}
+  database: ${STAGE_DB_NAME}
+  username: ${STAGE_DB_USER}
+  password: ${STAGE_DB_PASS}
+  port: ${STAGE_DB_PORT}
+
+data_source etl_target:
+  type: postgres
+  host: ${DB_HOST}
+  database: ${DB_NAME}
+  username: ${DB_USER}
+  password: ${DB_PASS}
+  port: ${DB_PORT}

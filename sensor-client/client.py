@@ -23,6 +23,7 @@ if __name__ == '__main__':
     with open(path, newline='') as f:
         reader = csv.reader(f)
         for row in reader:
+            #skip first row
             if first_row:
                 first_row = False
                 continue
@@ -30,11 +31,12 @@ if __name__ == '__main__':
 
             if previous_ts is not None:
                 delay = (current_ts - previous_ts).total_seconds()
-                time.sleep(max(delay, 0))
+#                 time.sleep(max(delay, 0))
 
             socket.send(bytes(','.join(row), 'UTF-8'))
             previous_ts = current_ts
-            if count == 50:
+            ##MAX SENT
+            if count == 20:
                 break
             count+=1
 
