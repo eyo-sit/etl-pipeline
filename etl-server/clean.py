@@ -2,6 +2,18 @@ from queue import Queue
 import os
 
 curr_count = 0
+last_cleaned = 0
+
+def csv_to_df():
+#     csv_list
+   ## grab all csvs that end with the latest round _[]_last_cleaned.csv 
+   ##put in list
+   ##loop through list and import to df
+       ##df = pd.read_csv
+       ##add datafram to list
+   ## return list
+
+
 def clean(in_q, out_q):
     file_template = 'tmp_sensor_'
 
