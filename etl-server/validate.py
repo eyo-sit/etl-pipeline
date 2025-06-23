@@ -15,9 +15,10 @@ columns = ['unix_timestamp','track_id','sensor_id','latitude','longitude','altit
 sensor_df = pd.DataFrame(columns=columns)
 
 ## Scan()
-
 def soda_scan(out_q):
+    print("Running soda scan", flush=True)
 
+    ## init soda scan
     scan = Scan()
     scan.set_data_source_name("etl_stage")
     scan.add_configuration_yaml_file(file_path="soda/configuration.yml")
@@ -25,17 +26,29 @@ def soda_scan(out_q):
     
     scan.execute()
 #     print(scan.get_logs_text())
+    
+    ## let clean know if it needs to run
     if scan.has_check_fails() :
-        print("Some tests failed")
+        print("Some tests failed", flush=True)
+        out_q.put("fail")
     else: 
-       print("Tests did not fail")
+
+        ## if data doesn't need to be cleaned still message clean to send to target database
+       print("Tests did not fail", flush=True)
+       out_q.put("pass")
     scan_results = scan.get_scan_results()
     checks = scan_results.get("checks")
     queries = scan_results.get("queries")
-    with open("logs/sodaresult.txt", "a") as f:
-       f.write("%s\n" % datetime.now())
+    scan_output = scan.get_logs_text()
+
+    ## write to scan logs
+    with open("logs/sodaresult.txt", 'a') as f:
+       f.write("**********%s**********\n" % datetime.now())
+       f.write(scan_output)
+       f.write("\n")
 #        f.write(scan.get_logs_text())
-    with open("logs/resultex.json", "w") as f:
+    ##this could be used to tell clean() what to focus on/how to be more effiencent
+    with open("logs/resultex.json", 'w') as f:
        json.dump(checks, f)
 
 #     for check in checks:
@@ -83,31 +96,28 @@ def process(cursor, data_message):
     sql += " )"
     cursor.execute(sql)
 
+
     #check if sensor has an active csv file
     file = location + file_template + data.get("sensor_id") + '.csv'
-    print(file)
 
     isDirExist = os.path.exists(location)
-    if isDirExist is True:  
-        isFileExist = os.path.exists(file)
-        #if it does
-        if isFileExist is True:
-            #append
-#             with open(file) as f:
-#                f.write(data_message)
-            print("File exists!")
+    isFileExist = os.path.exists(file)
+    #if it does
+    if isFileExist is True:
+        #append
+        with open(file, 'a') as f:
+           f.write(data_message.decode() + "\n")
+#             print("File exists!", flush=True)
 
-        #if not 
-        else:
-            #create and append
-            print("File does not exist!")
-#             with open(file) as f:
-#                f.write(data_message)
+    #if not 
     else:
-            #create and append
-            print("Directory does not exist")
-#             with open(file) as f:
-#                f.write(data_message)
+        #create and append
+#             print("File does not exist!", flush=True)
+        print("Created file", flush=True)
+        print(file, flush=True)
+        with open(file, "a") as f:
+           f.write(data_message.decode())
+    print("Wrote to file", flush=True)
 
 ###Validate()
 ## Initialize connection to staging database
@@ -126,11 +136,22 @@ def validate(in_q, out_q):
     conn = connect(config)
     conn.autocommit = True
     cursor = conn.cursor()
+    ##Overwrite log and sensor dataframes
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    if not os.path.exists("tmp"):
+        os.makedirs("tmp")
     open("logs/sodaresult.txt",'w').close()
+    print("Starting validation", flush=True)
     while True:
         # Get some data
         data_message = in_q.get()
         if data_message == b"DONE":
+            #clean remaining data
+            if batch_size != 0:
+                print("Batch size is " + str(batch_size))
+                batch_size = 0                
+                soda_scan(out_q)
             print("validation complete", flush=True)
             out_q.put("DONE")
             break
@@ -142,8 +163,34 @@ def validate(in_q, out_q):
 
     # when a certain amount has been entered run soda
             if batch_size >= 90:
+                print("Batch size reached, cleaning", flush=True)
                 batch_size = 0                
                 soda_scan(out_q)
+                while True:
+                    result = out_q.get()
+                    print("waiting for cleaning", flush=True)
+                    if result == "CONTINUE":
+                        print("Continuing validation", flush=True)
+                        print("Clearing staging database", flush=True)
+                        result = cursor.execute("TRUNCATE missile_tracks_sensor_1")
+                        conn.commit()
+                        print(result, flush=True)
+                        result = cursor.execute("TRUNCATE missile_tracks_sensor_2")
+                        conn.commit()
+                        print(result, flush=True)
+                        result = cursor.execute("TRUNCATE missile_tracks_sensor_3")
+                        conn.commit()
+                        print(result, flush=True)
+                        result = cursor.execute("TRUNCATE missile_tracks_sensor_4")
+                        conn.commit()
+                        print(result, flush=True)
+                        result = cursor.execute("TRUNCATE missile_tracks_sensor_5")
+                        conn.commit()
+                        print(result, flush=True)
+                        print("Cleared staging database", flush=True)
+                        break
+                    print("Something went wrong with cleaning", flush=True)
+                    break
                 # send to clean
 #             else:
 #                 print("Batch size is %s" % batch_size)

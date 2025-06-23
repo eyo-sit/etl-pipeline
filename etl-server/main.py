@@ -16,20 +16,22 @@ import os
 def ingest(conxext, out_q):
     socket = context.socket(zmq.PULL)
     socket.bind("tcp://*:5555")
-    print("socket binded to port 5555")
+    print("socket binded to port 5555", flush=True)
 
     # put the socket into listening mode
-    print("socket is listening")
+    print("socket is listening", flush=True)
 
     count = 0
     while True:
             #  Wait for next request from client
+#         print("Waiting for message", flush=True)
         message = socket.recv()
 #         print("Received request: %s" % message, flush=True)
+#         print("Message received", flush=True)
         if message == b"DONE":
             count+=1
             if count == 5:
-                print("End of communication")
+                print("End of communication", flush=True)
                 out_q.put(b"DONE")
                 break
         #  Do some 'work'
@@ -59,11 +61,17 @@ if __name__ == '__main__':
     t3 = threading.Thread(target=clean, args=(validateToCleanQ, cleanToReportQ,))
 #     t4 = threading.Thread(target=report, args=(cleanToReportQ, reportToStoreQ,))
 #     t5 = threading.Thread(target=store, args=(reportToStoreQ,))
-
+    
+    print("Starting ingestion thread", flush=True)
     t1.start()
+    print("Starting validation thread", flush=True)
     t2.start()
+    print("Starting cleaning thread", flush=True)
     t3.start()
     t1.join()
+    print("Ingestion thread completed", flush=True)
     t2.join()
+    print("Validation thread completed", flush=True)
     t3.join()
+    print("Cleaning thread completed", flush=True)
     print("Done!")

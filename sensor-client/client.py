@@ -13,8 +13,9 @@ if __name__ == '__main__':
     context = zmq.Context()
 
     socket = context.socket(zmq.PUSH)
-    socket.connect(f"tcp://{server_host}:{server_port}")
+    sock_state = socket.connect(f"tcp://{server_host}:{server_port}")
 
+    print(sock_state, flush=True)
     path = '/data/missile_tracks_sensor_'  + sensor_id + '.csv'
 
     count = 0
@@ -33,7 +34,9 @@ if __name__ == '__main__':
                 delay = (current_ts - previous_ts).total_seconds()
 #                 time.sleep(max(delay, 0))
 
-            socket.send(bytes(','.join(row), 'UTF-8'))
+            print("Sending message", flush=True)
+            result = socket.send(bytes(','.join(row), 'UTF-8'))
+            print(result, flush=True)
             previous_ts = current_ts
             ##MAX SENT
             if count == 20:
