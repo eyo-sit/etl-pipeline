@@ -24,6 +24,7 @@ services:
       POSTGRES_DB: ${STAGE_POSTGRES_DB}
     ports:
       - "${HOST_STAGE_DB_PORT}:${STAGE_DB_PORT}"
+    command: ["postgres", "-c", "log_statement=all"]
     volumes:
       - stage_pgdata:/var/lib/postgresql/data 
       - ./db/etl-stage/init.sql:/docker-entrypoint-initdb.d/init.sql

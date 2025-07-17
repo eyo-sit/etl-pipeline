@@ -62,7 +62,7 @@ def soda_scan(out_q):
 #                     f.write(check.get("name") + ": ")
 #                     f.write(query_name)
 #                     f.write(query_name + "\n")
-    out_q.put("bleh")
+    print("Done scanning round")
 
     
 
@@ -149,9 +149,16 @@ def validate(in_q, out_q):
         if data_message == b"DONE":
             #clean remaining data
             if batch_size != 0:
-                print("Batch size is " + str(batch_size))
+                print("Leftover batch size is " + str(batch_size), flush=True)
                 batch_size = 0                
                 soda_scan(out_q)
+                result = out_q.get()
+                while result != "CONTINUE":
+                        out_q.put(result)
+                        print("Validation recived " + result)
+            else:
+                print("Batch is empty")
+
             print("validation complete", flush=True)
             out_q.put("DONE")
             break
@@ -166,31 +173,47 @@ def validate(in_q, out_q):
                 print("Batch size reached, cleaning", flush=True)
                 batch_size = 0                
                 soda_scan(out_q)
+                conn.commit()
+                cursor.close()
+                conn.close()
                 while True:
-                    result = out_q.get()
                     print("waiting for cleaning", flush=True)
+                    result = out_q.get()
                     if result == "CONTINUE":
                         print("Continuing validation", flush=True)
                         print("Clearing staging database", flush=True)
-                        result = cursor.execute("TRUNCATE missile_tracks_sensor_1")
-                        conn.commit()
-                        print(result, flush=True)
-                        result = cursor.execute("TRUNCATE missile_tracks_sensor_2")
-                        conn.commit()
-                        print(result, flush=True)
-                        result = cursor.execute("TRUNCATE missile_tracks_sensor_3")
-                        conn.commit()
-                        print(result, flush=True)
-                        result = cursor.execute("TRUNCATE missile_tracks_sensor_4")
-                        conn.commit()
-                        print(result, flush=True)
-                        result = cursor.execute("TRUNCATE missile_tracks_sensor_5")
-                        conn.commit()
-                        print(result, flush=True)
+                        try:
+                            print("Connecting to database", flush=True)
+                            conn = connect(config)
+                            conn.autocommit = True
+                            cursor = conn.cursor()
+                            print("Executing truncating", flush=True)
+                            cursor.execute("DELETE FROM missile_tracks_sensor_1;")
+                            print("Executed truncating", flush=True)
+                            cursor.close()
+                            conn.close()
+                        except:
+                            print("Error cleaning database")
+#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_2")
+#                             conn.commit()
+#                             print(result, flush=True)
+#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_3")
+#                             conn.commit()
+#                             print(result, flush=True)
+#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_4")
+#                             conn.commit()
+#                             print(result, flush=True)
+#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_5")
+#                             conn.commit()
+#                             print(result, flush=True)
                         print("Cleared staging database", flush=True)
                         break
-                    print("Something went wrong with cleaning", flush=True)
-                    break
+                    else:
+                        print("Validation expected CONTINUE but recieved: " + result)
+                        out_q.put(result)
+                conn = connect(config)
+                conn.autocommit = True
+                cursor = conn.cursor()
                 # send to clean
 #             else:
 #                 print("Batch size is %s" % batch_size)
