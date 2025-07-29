@@ -14,8 +14,25 @@ sensor_data = []
 columns = ['unix_timestamp','track_id','sensor_id','latitude','longitude','altitude','radiometric_intensity']
 sensor_df = pd.DataFrame(columns=columns)
 
+ 
+curr_count = 0
+
+def csv_cleanup():
+    global curr_count
+    print("Cleaning up csv", flush=True)
+    #Get all csvs
+    for i in range(1,6):
+        file = "tmp/tmp_sensor_" + str(i) + ".csv"
+        fileExists = os.path.exists(file)
+        #change names of csv, forcing validate to make new file
+        if fileExists is True:
+            os.rename(file, "tmp/tbc_sensor_" + str(i)  + "_" + str(curr_count) + ".csv")
+                                                                    
+    curr_count+=1
+
 ## Scan()
 def soda_scan(out_q):
+    csv_cleanup()
     print("Running soda scan", flush=True)
 
     ## init soda scan
@@ -117,7 +134,7 @@ def process(cursor, data_message):
         print(file, flush=True)
         with open(file, "a") as f:
            f.write(data_message.decode())
-    print("Wrote to file", flush=True)
+#     print("Wrote to file", flush=True)
 
 ###Validate()
 ## Initialize connection to staging database
@@ -130,6 +147,7 @@ location = 'tmp/'
 def validate(in_q, out_q):
     global sensor_df
     global table_template
+    count = 0
 
     batch_size = 0
     config = load_stage_config()
@@ -152,65 +170,67 @@ def validate(in_q, out_q):
                 print("Leftover batch size is " + str(batch_size), flush=True)
                 batch_size = 0                
                 soda_scan(out_q)
-                result = out_q.get()
-                while result != "CONTINUE":
-                        out_q.put(result)
-                        print("Validation recived " + result)
+                conn.commit()
+                cursor.close()
+                conn.close()
+                print("waiting for cleaning", flush=True)
+                print("Clearing staging database", flush=True)
+                print("Connecting to database", flush=True)
+                conn = connect(config)
+                conn.autocommit = True
+                cursor = conn.cursor()
+                print("Executing truncating", flush=True)
+                cursor.execute("DELETE FROM missile_tracks_sensor_1;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_2;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_3;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_4;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_5;")
+                print("Executed truncating", flush=True)
+                conn.commit()
+                cursor.close()
+                conn.close()
+                print("Cleared staging database", flush=True)
+                conn = connect(config)
+                conn.autocommit = True
+                cursor = conn.cursor()
             else:
                 print("Batch is empty")
 
             print("validation complete", flush=True)
+            print(str(count) + " readings received")
             out_q.put("DONE")
             break
         else:
             # Process the data
             batch_size += 1
             process(cursor, data_message)
-
+            count +=1 
 
     # when a certain amount has been entered run soda
-            if batch_size >= 90:
+            if batch_size >= 1000:
                 print("Batch size reached, cleaning", flush=True)
                 batch_size = 0                
                 soda_scan(out_q)
                 conn.commit()
                 cursor.close()
                 conn.close()
-                while True:
-                    print("waiting for cleaning", flush=True)
-                    result = out_q.get()
-                    if result == "CONTINUE":
-                        print("Continuing validation", flush=True)
-                        print("Clearing staging database", flush=True)
-                        try:
-                            print("Connecting to database", flush=True)
-                            conn = connect(config)
-                            conn.autocommit = True
-                            cursor = conn.cursor()
-                            print("Executing truncating", flush=True)
-                            cursor.execute("DELETE FROM missile_tracks_sensor_1;")
-                            print("Executed truncating", flush=True)
-                            cursor.close()
-                            conn.close()
-                        except:
-                            print("Error cleaning database")
-#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_2")
-#                             conn.commit()
-#                             print(result, flush=True)
-#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_3")
-#                             conn.commit()
-#                             print(result, flush=True)
-#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_4")
-#                             conn.commit()
-#                             print(result, flush=True)
-#                             result = cursor.execute("TRUNCATE missile_tracks_sensor_5")
-#                             conn.commit()
-#                             print(result, flush=True)
-                        print("Cleared staging database", flush=True)
-                        break
-                    else:
-                        print("Validation expected CONTINUE but recieved: " + result)
-                        out_q.put(result)
+                print("waiting for cleaning", flush=True)
+                print("Clearing staging database", flush=True)
+                print("Connecting to database", flush=True)
+                conn = connect(config)
+                conn.autocommit = True
+                cursor = conn.cursor()
+                print("Executing truncating", flush=True)
+                cursor.execute("DELETE FROM missile_tracks_sensor_1;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_2;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_3;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_4;")
+                cursor.execute("DELETE FROM missile_tracks_sensor_5;")
+                print("Executed truncating", flush=True)
+                conn.commit()
+                cursor.close()
+                conn.close()
+                print("Cleared staging database", flush=True)
                 conn = connect(config)
                 conn.autocommit = True
                 cursor = conn.cursor()

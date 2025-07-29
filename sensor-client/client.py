@@ -36,11 +36,11 @@ if __name__ == '__main__':
 
             print("Sending message", flush=True)
             result = socket.send(bytes(','.join(row), 'UTF-8'))
+            count+=1
             print(result, flush=True)
             previous_ts = current_ts
             ##MAX SENT
-            if count == 20:
+            if count == 200:
                 break
-            count+=1
 
     socket.send(b"DONE")
